@@ -1,40 +1,85 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const User = require("../models/user"); 
+const User = require("../models/user");
 
-//signup endpoint
-exports.signup = async(req, res) => {
+// Utils
+const generateToken = (user) =>
+  jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
+    expiresIn: "1h",
+  });
+
+const validRoles = ["admin", "farmer", "customer"];
+
+// @desc Signup new user
+exports.signup = async (req, res) => {
+  try {
     const { name, email, password, role } = req.body;
 
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
     const exists = await User.findOne({ email });
-    if (exists) return res.status(400).json({ message: "User already exists" });
+    if (exists) {
+      return res.status(400).json({ message: "User already exists" });
+    }
 
     const hashed = await bcrypt.hash(password, 10);
-    // Only allow valid roles (lowercase), fallback to default if invalid
-    const validRoles = ["admin", "farmer", "customer"];
-    const userRole = validRoles.includes((role || '').toLowerCase()) ? role.toLowerCase() : undefined;
-    const user = await User.create({ username: name, email, password: hashed, ...(userRole && { role: userRole }) });
+    const userRole = validRoles.includes((role || "").toLowerCase())
+      ? role.toLowerCase()
+      : "customer";
 
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
-        expiresIn: '1h'
+    const user = await User.create({
+      username: name,
+      email,
+      password: hashed,
+      role: userRole,
     });
-    res.json({ token });
+
+    const token = generateToken(user);
+    res.status(201).json({
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (err) {
+    console.error("Signup error:", err);
+    res.status(500).json({ message: "Server error during signup" });
+  }
 };
 
-//login endpoint
+// @desc Login user
+exports.login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
-exports.login = async (req, res) =>{
-    const {email, password} = req.body;
+    if (!email || !password)
+      return res.status(400).json({ message: "Email and password required" });
 
-    const user = await User.findOne({email});
-    if(!user) return res.status(404).json({message: "User not found"});
+    const user = await User.findOne({ email });
+    if (!user)
+      return res.status(404).json({ message: "User not found" });
 
-    const match = await bcrypt.compare(password , user.password);
-    if(!match)  return res.status(401).json({message: "incorrect password"});
+    const match = await bcrypt.compare(password, user.password);
+    if (!match)
+      return res.status(401).json({ message: "Incorrect password" });
 
-    const token = jwt.sign({ id: user._id , role: user.role}, process.env.JWT_SECRET, {
-        expiresIn : '1h'
+    const token = generateToken(user);
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+      },
     });
-    res.json({token});
-
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ message: "Server error during login" });
+  }
 };
