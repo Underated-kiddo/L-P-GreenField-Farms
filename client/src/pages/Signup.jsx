@@ -1,48 +1,101 @@
-import { useState } from "react"
-import axios from "axios"
-import { useNavigate } from "react-router-dom"
+import { useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
-export default function SignUp() {
-    const [name, setName] = useState("")
-    const [email, setEmail] = useState("")
-    const [password, setPassword] = useState("")
-    const [role, setRole] = useState("Customer")
-    const navigate = useNavigate()
+export default function Signup() {
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    role: "customer",
+  });
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-    const handleSubmit = async (e) => {
-    e.preventDefault()
+  const handleSignup = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
     try {
-        const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/auth/signup`, { name, email, password, role })
-        localStorage.setItem("token", data.token)
-        localStorage.setItem("role", data.role)
-        if (data.role === "admin" || role.toLowerCase() === "admin") navigate("/admin")
-        else navigate("/dashboard")
-    } catch (err) {
-        alert("Sign up failed")
-    }
-}
+      // Register the user
+      await axios.post("http://localhost:5000/api/auth/signup", form, {
+        withCredentials: true,
+      });
 
-    return (
-    <div className="flex items-center justify-center h-screen">
-        <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow space-y-4 w-80">
-        <h2 className="text-2xl font-bold">Sign Up</h2>
-        <input type="text" placeholder="Name" value={name} onChange={(e)=>setName(e.target.value)}
-            className="w-full border p-2 rounded"/>
-        <input type="email" placeholder="Email" value={email} onChange={(e)=>setEmail(e.target.value)}
-            className="w-full border p-2 rounded"/>
-        <input type="password" placeholder="Password" value={password} onChange={(e)=>setPassword(e.target.value)}
-            className="w-full border p-2 rounded"/>
-        <select value={role} onChange={(e)=>setRole(e.target.value)}
-            className="w-full border p-2 rounded">
-            <option value="Customer">Customer</option>
-            <option
-            value="Farmer">Farmer</option>
-            <option value="Admin">Admin</option>
+      // Fetch profile to get the role
+      const { data } = await axios.get("http://localhost:5000/api/auth/profile", {
+        withCredentials: true,
+      });
+
+      // Redirect based on role
+      if (data.role === "farmer") navigate("/farmer-dashboard");
+      else if (data.role === "admin") navigate("/admin-dashboard");
+      else navigate("/customer-dashboard");
+    } catch (err) {
+      console.error("Signup failed:", err.response?.data?.message || err.message);
+      alert(err.response?.data?.message || "Signup failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <form
+        onSubmit={handleSignup}
+        className="bg-white p-6 rounded-xl shadow-md w-80"
+      >
+        <h2 className="text-xl font-semibold mb-4 text-center">Create Account</h2>
+
+        <input
+          type="text"
+          placeholder="Name"
+          className="w-full p-2 border mb-3 rounded"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          required
+        />
+        <input
+          type="email"
+          placeholder="Email"
+          className="w-full p-2 border mb-3 rounded"
+          value={form.email}
+          onChange={(e) => setForm({ ...form, email: e.target.value })}
+          required
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          className="w-full p-2 border mb-3 rounded"
+          value={form.password}
+          onChange={(e) => setForm({ ...form, password: e.target.value })}
+          required
+        />
+
+        <select
+          className="w-full p-2 border mb-3 rounded"
+          value={form.role}
+          onChange={(e) => setForm({ ...form, role: e.target.value })}
+        >
+          <option value="customer">Customer</option>
+          <option value="farmer">Farmer</option>
         </select>
-        <button type="submit" className="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700">
-            Sign Up
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="bg-green-600 text-white w-full py-2 rounded hover:bg-green-700 disabled:opacity-50"
+        >
+          {loading ? "Signing up..." : "Signup"}
         </button>
-        </form>
+
+        <p className="mt-4 text-sm text-center">
+          Already have an account?{" "}
+          <a href="/login" className="text-blue-600 hover:underline">
+            Login
+          </a>
+        </p>
+      </form>
     </div>
-    )
+  );
 }

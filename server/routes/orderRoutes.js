@@ -1,23 +1,19 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const Order = require('../models/order');
-const { protect, authorizeRoles } = require('../middleware/auth');
+const { protect } = require("../middleware/authMiddleware");
+const {
+  createOrder,
+  getOrdersByUser,
+  getAllOrders,
+} = require("../controllers/orderController");
 
-// Create order (customer only)
-router.post('/', protect, authorizeRoles('customer'), async (req, res) => {
-  try {
-    const order = new Order({ ...req.body, customer: req.user._id });
-    await order.save();
-    res.status(201).json(order);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
+// Create a new order (must be logged in)
+router.post("/", protect, createOrder);
 
-// Get orders for customer
-router.get('/', protect, authorizeRoles('customer'), async (req, res) => {
-  const orders = await Order.find({ customer: req.user._id }).populate('products');
-  res.json(orders);
-});
+// Get orders made by the logged-in user
+router.get("/my-orders", protect, getOrdersByUser);
+
+// Admin/Farmer access to see all orders (you can extend this with role-based middleware if needed)
+router.get("/", protect, getAllOrders);
 
 module.exports = router;
