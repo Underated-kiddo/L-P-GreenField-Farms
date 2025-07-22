@@ -2,15 +2,19 @@ import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-export default function Signup() {
+export default function SignUp() {
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     name: "",
     email: "",
     password: "",
-    role: "customer",
+    role: "customer", // default role
   });
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+
+  const handleChange = (e) => {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
 
   const handleSignup = async (e) => {
     e.preventDefault();
@@ -22,15 +26,17 @@ export default function Signup() {
         withCredentials: true,
       });
 
-      // Fetch profile to get the role
+      // Fetch profile to get the user's role
       const { data } = await axios.get("http://localhost:5000/api/auth/profile", {
         withCredentials: true,
       });
 
-      // Redirect based on role
-      if (data.role === "farmer") navigate("/farmer-dashboard");
-      else if (data.role === "admin") navigate("/admin-dashboard");
-      else navigate("/customer-dashboard");
+      const role = data.user.role;
+
+      // Redirect to dashboard based on role
+      if (role === "farmer") navigate("/farmer/dashboard");
+      else if (role === "admin") navigate("/admin/dashboard");
+      else navigate("/customer/dashboard");
     } catch (err) {
       console.error("Signup failed:", err.response?.data?.message || err.message);
       alert(err.response?.data?.message || "Signup failed");
@@ -40,58 +46,67 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="flex items-center justify-center min-h-screen bg-green-100 dark:bg-green-900">
       <form
         onSubmit={handleSignup}
-        className="bg-white p-6 rounded-xl shadow-md w-80"
+        className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md w-full max-w-md"
       >
-        <h2 className="text-xl font-semibold mb-4 text-center">Create Account</h2>
+        <h2 className="text-2xl font-bold mb-4 text-center text-green-700 dark:text-green-300">
+          Sign Up
+        </h2>
 
         <input
           type="text"
-          placeholder="Name"
-          className="w-full p-2 border mb-3 rounded"
+          name="name"
           value={form.name}
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          onChange={handleChange}
+          placeholder="Full Name"
           required
+          className="w-full p-2 mb-4 border rounded"
         />
+
         <input
           type="email"
-          placeholder="Email"
-          className="w-full p-2 border mb-3 rounded"
+          name="email"
           value={form.email}
-          onChange={(e) => setForm({ ...form, email: e.target.value })}
+          onChange={handleChange}
+          placeholder="Email"
           required
+          className="w-full p-2 mb-4 border rounded"
         />
+
         <input
           type="password"
-          placeholder="Password"
-          className="w-full p-2 border mb-3 rounded"
+          name="password"
           value={form.password}
-          onChange={(e) => setForm({ ...form, password: e.target.value })}
+          onChange={handleChange}
+          placeholder="Password"
           required
+          className="w-full p-2 mb-4 border rounded"
         />
 
         <select
-          className="w-full p-2 border mb-3 rounded"
+          name="role"
           value={form.role}
-          onChange={(e) => setForm({ ...form, role: e.target.value })}
+          onChange={handleChange}
+          className="w-full p-2 mb-4 border rounded"
         >
           <option value="customer">Customer</option>
           <option value="farmer">Farmer</option>
+          <option value="admin">Admin</option>
         </select>
 
         <button
           type="submit"
+          className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition"
           disabled={loading}
-          className="bg-green-600 text-white w-full py-2 rounded hover:bg-green-700 disabled:opacity-50"
         >
-          {loading ? "Signing up..." : "Signup"}
+          {loading ? "Signing up..." : "Sign Up"}
         </button>
 
-        <p className="mt-4 text-sm text-center">
+        <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-300">
           Already have an account?{" "}
-          <a href="/login" className="text-blue-600 hover:underline">
+          <a href="/login" className="text-green-600 hover:underline">
             Login
           </a>
         </p>
