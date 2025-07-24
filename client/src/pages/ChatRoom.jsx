@@ -1,80 +1,81 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import { socket } from "../socket";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function ChatRoom() {
+  const { id } = useParams(); // ID of user you're chatting with
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
-  const user = localStorage.getItem("name") || "Anonymous";
-  const scrollRef = useRef(null);
+
+  const currentUserId = localStorage.getItem("userId"); // store this during login
+  const currentUserName = localStorage.getItem("name");
 
   useEffect(() => {
-    socket.on("receivePublicMessage", (msg) => {
-      setMessages((prev) => [...prev, { ...msg, timestamp: new Date().toISOString() }]);
+    // Fetch previous messages between current user and the selected user
+    const fetchMessages = async () => {
+      try {
+        const res = await fetch(`http://localhost:5000/api/messages/${id}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        const data = await res.json();
+        setMessages(data);
+      } catch (err) {
+        console.error("Failed to load chat messages", err);
+      }
+    };
+
+    fetchMessages();
+  }, [id]);
+
+  useEffect(() => {
+    // Listen for private messages
+    socket.on("receivePrivateMessage", (msg) => {
+      if (
+        (msg.sender === id && msg.receiver === currentUserId) || // incoming msg from that user
+        (msg.sender === currentUserId && msg.receiver === id) // echo your sent msg
+      ) {
+        setMessages((prev) => [...prev, msg]);
+      }
     });
-    return () => socket.off("receivePublicMessage");
-  }, []);
 
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
+    return () => socket.off("receivePrivateMessage");
+  }, [id, currentUserId]);
 
   const sendMessage = () => {
     if (!input.trim()) return;
-    socket.emit("sendPublicMessage", { user, text: input });
+
+    const messageData = {
+      sender: currentUserId,
+      receiver: id,
+      user: currentUserName,
+      text: input,
+    };
+
+    socket.emit("sendPrivateMessage", messageData);
     setInput("");
   };
 
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter") sendMessage();
-  };
-
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h2 className="text-3xl font-bold mb-4">🌾 Farm Chat Room</h2>
-
-      <ScrollArea className="border h-96 rounded-lg p-4 overflow-y-scroll" ref={scrollRef}>
-        <div className="flex flex-col gap-3">
-          {messages.map((m, i) => {
-            const isSelf = m.user === user;
-            return (
-              <div key={i} className={`flex items-start gap-2 ${isSelf ? "justify-end" : "justify-start"}`}>
-                {!isSelf && (
-                  <Avatar className="w-8 h-8">
-                    <AvatarImage src={m.avatar || "/placeholder.jpg"} />
-                    <AvatarFallback>{m.user?.slice(0, 2).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                )}
-                <div className={`rounded-lg px-4 py-2 max-w-xs text-sm shadow ${isSelf ? "bg-green-100 text-right" : "bg-gray-200"}`}>
-                  <p className="font-semibold">{isSelf ? "You" : m.user}</p>
-                  <p className="break-words">{m.text}</p>
-                  <p className="text-[10px] text-gray-500 mt-1">
-                    {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </ScrollArea>
-
-      <div className="flex items-center gap-2 mt-4">
-        <Input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyPress}
-          placeholder="Type your message..."
-          className="flex-1"
-        />
-        <Button onClick={sendMessage} className="bg-green-600 text-white">
-          Send
-        </Button>
+    <div className="p-6">
+      <h2 className="text-2xl mb-4">Chat with User {id}</h2>
+      <div className="border h-64 overflow-y-scroll p-2 mb-4 rounded bg-white shadow">
+        {messages.map((m, i) => (
+          <div key={i} className="mb-1">
+            <b>{m.user}</b>: {m.text}
+          </div>
+        ))}
       </div>
+      <input
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        className="border p-2 mr-2 w-2/3"
+        placeholder="Type your message..."
+      />
+      <button onClick={sendMessage} className="bg-green-600 text-white p-2 rounded">
+        Send
+      </button>
     </div>
   );
 }

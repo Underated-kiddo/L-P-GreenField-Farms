@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import SignUp from "./pages/Signup";
+import Settings from "./pages/Settings";
 
 // Role-based dashboards
 import Dashboard from "./pages/Dashboard"; // fallback/legacy
@@ -37,6 +38,9 @@ export default function App() {
 
         {/* Common Functional Pages */}
         <Route path="/farming-tips" element={<FarmingTips />} />
+        <Route path="/settings" element={<Settings />} />
+
+        {/* Additional Features */}
         <Route path="/hot-deals" element={<HotDeals />} />
         <Route path="/services" element={<Services />} />
         <Route path="/stats" element={<Stats />} />

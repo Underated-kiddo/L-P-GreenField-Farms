@@ -2,37 +2,40 @@ const mongoose = require("mongoose");
 
 const messageSchema = new mongoose.Schema(
   {
-    from: {
+    sender: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true
+      required: true,
     },
-    to: {
+    receiver: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      default: null // For public/global messages
+    },
+    groupId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Group", // You'll define this model soon
     },
     text: {
       type: String,
-      trim: true,
-      default: ""
+      required: true,
     },
-    imageUrl: {
+    user: {
       type: String,
-      default: ""
+      required: true,
     },
-    seen: {
+    isSeen: {
       type: Boolean,
-      default: false
+      default: false,
     },
-    delivered: {
+    isDelivered: {
       type: Boolean,
-      default: false
-    }
+      default: false,
+    },
+    emojis: {
+      type: String, // optional emoji string (e.g. 😊👍🔥)
+    },
   },
-  {
-    timestamps: true // adds createdAt and updatedAt
-  }
+  { timestamps: true }
 );
 
 module.exports = mongoose.model("Message", messageSchema);

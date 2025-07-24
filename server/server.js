@@ -1,32 +1,55 @@
-const express = require("express");
-const cors = require("cors");
-const dotenv = require("dotenv");
-const cookieParser = require("cookie-parser");
-const connectDB = require("./config/db");
+const { Server } = require("socket.io");
 
-const authRoutes = require("./routes/authRoutes");
-const adminRoutes = require("./routes/adminRoutes");
-const productRoutes = require("./routes/productRoutes");
-const orderRoutes = require("./routes/orderRoutes");
+let onlineUsers = new Map();
 
-dotenv.config();
-const app = express();
-connectDB();
+const initSocket = (server) => {
+  const io = new Server(server, {
+    cors: {
+      origin: "http://localhost:5173",
+      credentials: true,
+    },
+  });
 
-app.use(cors({
-  origin: "http://localhost:5173",
-  credentials: true,
-}));
+  io.on("connection", (socket) => {
+    console.log("🟢 Socket connected:", socket.id);
 
-app.use(express.json());
-app.use(cookieParser());
+    socket.on("addUser", (userId) => {
+      onlineUsers.set(userId, socket.id);
+      io.emit("getUsers", Array.from(onlineUsers.keys()));
+    });
 
-app.use("/api/auth", authRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/products", productRoutes);
-app.use("/api/orders", orderRoutes);
+    socket.on("sendMessage", ({ senderId, receiverId, text }) => {
+      const receiverSocket = onlineUsers.get(receiverId);
+      if (receiverSocket) {
+        io.to(receiverSocket).emit("receiveMessage", {
+          senderId,
+          text,
+          timestamp: new Date(),
+        });
+      }
+    });
 
-app.get("/", (req, res) => res.send("L&P Greenfield Farms API Running"));
+    socket.on("typing", ({ to }) => {
+      const receiverSocket = onlineUsers.get(to);
+      if (receiverSocket) io.to(receiverSocket).emit("typing");
+    });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    socket.on("stopTyping", ({ to }) => {
+      const receiverSocket = onlineUsers.get(to);
+      if (receiverSocket) io.to(receiverSocket).emit("stopTyping");
+    });
+
+    socket.on("disconnect", () => {
+      for (const [userId, sockId] of onlineUsers.entries()) {
+        if (sockId === socket.id) {
+          onlineUsers.delete(userId);
+          break;
+        }
+      }
+      io.emit("getUsers", Array.from(onlineUsers.keys()));
+      console.log("🔴 Disconnected:", socket.id);
+    });
+  });
+};
+
+module.exports = initSocket;
