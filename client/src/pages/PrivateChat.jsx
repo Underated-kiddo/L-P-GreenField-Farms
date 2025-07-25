@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
 import { socket } from "../socket";
 import { useParams } from "react-router-dom";
 import EmojiPicker from "emoji-picker-react";
+import api from "../api/axiosInstance"; // 👈 central Axios instance
 
 export default function PrivateChat() {
   const { userId } = useParams();
@@ -27,7 +27,10 @@ export default function PrivateChat() {
       }
     });
 
-    return () => socket.off("receivePrivateMessage");
+    return () => {
+      socket.off("receivePrivateMessage");
+      socket.off("typing");
+    };
   }, []);
 
   const handleTyping = () => {
@@ -37,10 +40,14 @@ export default function PrivateChat() {
   const sendMessage = async () => {
     let imageUrl = null;
     if (file) {
-      const data = new FormData();
-      data.append("image", file);
-      const res = await axios.post(`${import.meta.env.VITE_API_URL}/upload`, data);
-      imageUrl = res.data.url;
+      try {
+        const data = new FormData();
+        data.append("image", file);
+        const res = await api.post("/upload", data);
+        imageUrl = res.data.url;
+      } catch (err) {
+        console.error("Upload failed:", err);
+      }
     }
 
     const message = {
@@ -49,6 +56,7 @@ export default function PrivateChat() {
       imageUrl,
       seen: false,
     };
+
     socket.emit("sendPrivateMessage", { roomId, message });
     setInput("");
     setFile(null);

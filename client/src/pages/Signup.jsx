@@ -1,6 +1,6 @@
 import { useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import api from "../api/axiosInstance";
 
 export default function SignUp() {
   const navigate = useNavigate();
@@ -8,7 +8,7 @@ export default function SignUp() {
     name: "",
     email: "",
     password: "",
-    role: "customer", // default role
+    role: "customer",
   });
   const [loading, setLoading] = useState(false);
 
@@ -21,22 +21,16 @@ export default function SignUp() {
     setLoading(true);
 
     try {
-      // Register the user
-      await axios.post("http://localhost:5000/api/auth/signup", form, {
-        withCredentials: true,
-      });
+      await api.post("/auth/signup", form);
 
-      // Fetch profile to get the user's role
-      const { data } = await axios.get("http://localhost:5000/api/auth/profile", {
-        withCredentials: true,
-      });
+      const { data } = await api.get("/auth/profile");
 
       const role = data.user.role;
 
-      // Redirect to dashboard based on role
       if (role === "farmer") navigate("/farmer/dashboard");
       else if (role === "admin") navigate("/admin/dashboard");
       else navigate("/customer/dashboard");
+
     } catch (err) {
       console.error("Signup failed:", err.response?.data?.message || err.message);
       alert(err.response?.data?.message || "Signup failed");

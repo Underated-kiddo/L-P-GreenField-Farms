@@ -1,17 +1,14 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api/axiosInstance"; // adjust if in a different path
 
 const HotDeals = () => {
   const [adverts, setAdverts] = useState([]);
-  const token = localStorage.getItem("token");
 
   useEffect(() => {
-    axios.get(`${import.meta.env.VITE_API_URL}/admin/adverts`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
+    api.get("/admin/adverts")
       .then(res => setAdverts(res.data))
       .catch(() => setAdverts([]));
-  }, [token]);
+  }, []);
 
   return (
     <div className="p-6">

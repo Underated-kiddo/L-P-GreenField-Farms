@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import api from "../api/axiosInstance"; // ✅ Consistent path
 
 const Chats = () => {
   const [users, setUsers] = useState([]);
@@ -11,8 +12,7 @@ const Chats = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/user/all"); // ✅ make sure this route exists in backend
-        const data = await res.json();
+        const { data } = await api.get("/user/all"); // baseURL already includes /api
         setUsers(data);
       } catch (err) {
         console.error("Failed to load users", err);

@@ -1,55 +1,38 @@
-const { Server } = require("socket.io");
+const express = require("express");
+const http = require("http");
+const dotenv = require("dotenv");
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
+const connectDB = require("./config/db");
+const initSocket = require("./socket"); // path to your socket file
 
-let onlineUsers = new Map();
+dotenv.config();
 
-const initSocket = (server) => {
-  const io = new Server(server, {
-    cors: {
-      origin: "http://localhost:5173",
-      credentials: true,
-    },
-  });
+const app = express();
+const server = http.createServer(app);
 
-  io.on("connection", (socket) => {
-    console.log("🟢 Socket connected:", socket.id);
+// Middlewares
+app.use(cors({
+  origin: "http://localhost:5173", // frontend URL
+  credentials: true,
+}));
+app.use(cookieParser());
+app.use(express.json());
 
-    socket.on("addUser", (userId) => {
-      onlineUsers.set(userId, socket.id);
-      io.emit("getUsers", Array.from(onlineUsers.keys()));
-    });
+// Connect to DB
+connectDB();
 
-    socket.on("sendMessage", ({ senderId, receiverId, text }) => {
-      const receiverSocket = onlineUsers.get(receiverId);
-      if (receiverSocket) {
-        io.to(receiverSocket).emit("receiveMessage", {
-          senderId,
-          text,
-          timestamp: new Date(),
-        });
-      }
-    });
+// Routes
+app.use("/api/auth", require("./routes/authRoutes"));
+app.use("/api/user", require("./routes/userRoutes"));
+app.use("/api/admin", require("./routes/adminRoutes"));
+// Add more routes as needed
 
-    socket.on("typing", ({ to }) => {
-      const receiverSocket = onlineUsers.get(to);
-      if (receiverSocket) io.to(receiverSocket).emit("typing");
-    });
+// Init socket.io
+initSocket(server);
 
-    socket.on("stopTyping", ({ to }) => {
-      const receiverSocket = onlineUsers.get(to);
-      if (receiverSocket) io.to(receiverSocket).emit("stopTyping");
-    });
-
-    socket.on("disconnect", () => {
-      for (const [userId, sockId] of onlineUsers.entries()) {
-        if (sockId === socket.id) {
-          onlineUsers.delete(userId);
-          break;
-        }
-      }
-      io.emit("getUsers", Array.from(onlineUsers.keys()));
-      console.log("🔴 Disconnected:", socket.id);
-    });
-  });
-};
-
-module.exports = initSocket;
+// Start server
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => {
+  console.log(`✅ Server running on http://localhost:${PORT}`);
+});

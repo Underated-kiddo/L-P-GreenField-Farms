@@ -1,6 +1,6 @@
 import { useState } from "react";
-import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
+import axios from "../api/axiosInstance"; // centralized axios config
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -13,18 +13,11 @@ export default function Login() {
     setError("");
 
     try {
-      const res = await axios.post(
-        "http://localhost:5000/api/auth/login",
-        { email, password },
-        { withCredentials: true }
-      );
+      const res = await axios.post("/auth/login", { email, password });
 
       const { user } = res.data;
-
-      // Save user in localStorage
       localStorage.setItem("user", JSON.stringify(user));
 
-      // Redirect based on role
       switch (user.role) {
         case "admin":
           navigate("/admin/dashboard");
@@ -96,3 +89,4 @@ export default function Login() {
     </div>
   );
 }
+

@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import api from "../api/axiosInstance"; // ✅ Use centralized Axios
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios
-      .get("http://localhost:5000/api/user/dashboard", { withCredentials: true })
+    api
+      .get("/user/dashboard")
       .then((res) => {
         const { role } = res.data;
 

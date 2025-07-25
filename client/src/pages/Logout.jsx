@@ -1,12 +1,12 @@
 import { useEffect } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import api from "../api/axiosInstance"; // adjust path if needed
 
 export default function Logout() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/auth/logout", { withCredentials: true })
+    api.get("/auth/logout")
       .finally(() => {
         localStorage.removeItem("user");
         navigate("/login");

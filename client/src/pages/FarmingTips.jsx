@@ -1,17 +1,15 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api/axiosInstance"; // ✅ Centralized Axios instance
 
 const FarmingTips = () => {
   const [tips, setTips] = useState([]);
-  const token = localStorage.getItem("token");
 
   useEffect(() => {
-    axios.get(`${import.meta.env.VITE_API_URL}/admin/tips`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(res => setTips(res.data))
+    api
+      .get("/admin/tips")
+      .then((res) => setTips(res.data))
       .catch(() => setTips([]));
-  }, [token]);
+  }, []);
 
   return (
     <div className="p-6">
@@ -20,11 +18,15 @@ const FarmingTips = () => {
         <p>No tips available.</p>
       ) : (
         <div className="grid gap-4">
-          {tips.map(tip => (
+          {tips.map((tip) => (
             <div key={tip._id} className="border rounded p-4 bg-white shadow">
               <div className="font-semibold mb-2">{tip.text}</div>
               {tip.images && tip.images[0] && (
-                <img src={tip.images[0]} alt="tip" className="w-full h-32 object-cover" />
+                <img
+                  src={tip.images[0]}
+                  alt="tip"
+                  className="w-full h-32 object-cover"
+                />
               )}
             </div>
           ))}
