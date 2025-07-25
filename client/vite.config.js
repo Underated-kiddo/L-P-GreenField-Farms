@@ -9,9 +9,11 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 export default defineConfig({
+  base: '/', // 🔥 ensures correct path resolution in production
   plugins: [react(), tailwindcss()],
   build: {
-    outDir: 'dist',},
+    outDir: 'dist',
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
